@@ -10,9 +10,15 @@ from sklearn.metrics import precision_recall_fscore_support
 from transformers import EarlyStoppingCallback
 
 # 1. Load dữ liệu
-train_sentences, train_tags = load_data_from_txt("../data/processed/train.txt")
-val_sentences, val_tags = load_data_from_txt("../data/processed/dev.txt")
-test_sentences, test_tags = load_data_from_txt("../data/processed/test.txt")
+base_path = "/kaggle/working/POS-Tagging/data/processed"
+
+if not os.path.exists(base_path):  # nếu không phải Kaggle thì dùng đường dẫn local
+    base_path = "../data/processed"
+
+train_sentences, train_tags = load_data_from_txt(os.path.join(base_path, "train.txt"))
+val_sentences, val_tags = load_data_from_txt(os.path.join(base_path, "dev.txt"))
+test_sentences, test_tags = load_data_from_txt(os.path.join(base_path, "test.txt"))
+
 tag2id, id2tag = build_tag_mapping(train_tags)
 num_labels = len(tag2id)
 
