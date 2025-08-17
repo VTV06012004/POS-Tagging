@@ -81,7 +81,7 @@ training_args = TrainingArguments(
     load_best_model_at_end=True,
     metric_for_best_model="f1",  # chọn metric tốt nhất
     greater_is_better=True,
-    report_to="none",
+    report_to=["tensorboard", "console"]
 )
 
 # 6. Metrics
