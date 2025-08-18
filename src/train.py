@@ -121,11 +121,11 @@ def main():
     training_args = TrainingArguments(
         output_dir="./results",
         num_train_epochs=5,
-        per_device_train_batch_size=4,
-        per_device_eval_batch_size=8,
-        evaluation_strategy="epoch",   # đánh giá mỗi epoch trên dev
-        save_strategy="epoch",         # lưu checkpoint mỗi epoch
-        save_total_limit=2,            # giữ lại 2 checkpoint mới nhất (tiết kiệm dung lượng)
+        per_device_train_batch_size=16,   # giữ như code cũ
+        per_device_eval_batch_size=16,
+        eval_strategy="epoch",
+        save_strategy="epoch",
+        save_total_limit=2,
         logging_dir="./logs",
         logging_steps=50,
         learning_rate=5e-5,
@@ -136,7 +136,7 @@ def main():
         report_to=["tensorboard"],
         seed=42,
     )
-
+    
     # 7) Trainer
     trainer = Trainer(
         model=model,
