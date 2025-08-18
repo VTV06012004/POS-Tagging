@@ -69,7 +69,7 @@ val_dataset = POSDataset(val_sents, val_lbls, tokenizer, tag2id)
 # 5. TrainingArguments
 training_args = TrainingArguments(
     output_dir="./results",
-    num_train_epochs=10,  # tăng lên nếu dùng early stopping
+    num_train_epochs=5,  # tăng lên nếu dùng early stopping
     per_device_train_batch_size=4,
     per_device_eval_batch_size=8,
     eval_strategy="epoch",
