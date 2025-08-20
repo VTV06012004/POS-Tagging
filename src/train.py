@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import random
@@ -142,7 +143,7 @@ def main():
         model=model,
         args=training_args,
         train_dataset=train_dataset,
-        eval_dataset=dev_dataset,   # <-- CHÍNH XÁC: dùng dev.txt để eval
+        eval_dataset=dev_dataset,
         tokenizer=tokenizer,
         compute_metrics=compute_metrics,
         callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
@@ -155,7 +156,6 @@ def main():
     os.makedirs("models/bert-pos", exist_ok=True)
     model.save_pretrained("models/bert-pos")
     tokenizer.save_pretrained("models/bert-pos")
-
 
 if __name__ == "__main__":
     main()
