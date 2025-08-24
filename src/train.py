@@ -121,15 +121,15 @@ def main():
     # 6) TrainingArguments
     training_args = TrainingArguments(
         output_dir="./results",
-        num_train_epochs=5,
-        per_device_train_batch_size=16,   # giữ như code cũ
-        per_device_eval_batch_size=16,
+        num_train_epochs=7,
+        per_device_train_batch_size=32,
+        per_device_eval_batch_size=32,
         eval_strategy="epoch",
         save_strategy="epoch",
         save_total_limit=2,
         logging_dir="./logs",
         logging_steps=50,
-        learning_rate=5e-5,
+        learning_rate=3e-5,
         weight_decay=0.01,
         load_best_model_at_end=True,
         metric_for_best_model="f1",
@@ -146,7 +146,7 @@ def main():
         eval_dataset=dev_dataset,
         tokenizer=tokenizer,
         compute_metrics=compute_metrics,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
     )
 
     # 8) Train
