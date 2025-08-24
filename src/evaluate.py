@@ -3,7 +3,7 @@ import json
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import precision_recall_fscore_support, classification_report
 from transformers import Trainer, TrainingArguments
 
 from preprocess import build_tag_mapping
@@ -53,7 +53,6 @@ class POSDataset(Dataset):
 
 # ========= Metrics =========
 def compute_metrics(p):
-    # Tương thích EvalPrediction hoặc tuple
     if hasattr(p, "predictions"):
         predictions, labels = p.predictions, p.label_ids
     else:
@@ -69,12 +68,38 @@ def compute_metrics(p):
                 true_labels.append(l_i)
                 true_preds.append(p_i)
 
-    precision, recall, f1, _ = precision_recall_fscore_support(
+    # Micro metrics (trùng accuracy)
+    precision_micro, recall_micro, f1_micro, _ = precision_recall_fscore_support(
         true_labels, true_preds, average="micro", zero_division=0
     )
     accuracy = (np.array(true_labels) == np.array(true_preds)).mean().item()
 
-    return {"accuracy": accuracy, "precision": precision, "recall": recall, "f1": f1}
+    # Macro metrics
+    precision_macro, recall_macro, f1_macro, _ = precision_recall_fscore_support(
+        true_labels, true_preds, average="macro", zero_division=0
+    )
+
+    # Weighted metrics
+    precision_weighted, recall_weighted, f1_weighted, _ = precision_recall_fscore_support(
+        true_labels, true_preds, average="weighted", zero_division=0
+    )
+
+    # Classification report (in console)
+    print("\n📑 Classification report per tag:")
+    print(classification_report(true_labels, true_preds, zero_division=0))
+
+    return {
+        "accuracy": accuracy,
+        "precision_micro": precision_micro,
+        "recall_micro": recall_micro,
+        "f1_micro": f1_micro,
+        "precision_macro": precision_macro,
+        "recall_macro": recall_macro,
+        "f1_macro": f1_macro,
+        "precision_weighted": precision_weighted,
+        "recall_weighted": recall_weighted,
+        "f1_weighted": f1_weighted,
+    }
 
 # ========= Main =========
 def main():
@@ -133,10 +158,24 @@ def main():
         json.dump(results, f, indent=2)
     print(f"✅ Saved evaluation results to {out_metrics}")
 
-    # Predict chi tiết
+    # Save classification report per tag
     preds_output = trainer.predict(eval_dataset)
     preds = np.argmax(preds_output.predictions, axis=-1)
 
+    all_true, all_pred = [], []
+    for pred, label in zip(preds, preds_output.label_ids):
+        for p_i, l_i in zip(pred, label):
+            if l_i != -100:
+                all_true.append(l_i)
+                all_pred.append(p_i)
+
+    report_txt = classification_report(all_true, all_pred, target_names=[id2tag[i] for i in sorted(id2tag.keys())], zero_division=0)
+    report_path = os.path.join(results_dir, f"eval_{eval_file.replace('.txt','')}_report.txt")
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write(report_txt)
+    print(f"✅ Saved classification report to {report_path}")
+
+    # Save predictions
     pred_dir = os.path.join(results_dir, "predictions")
     os.makedirs(pred_dir, exist_ok=True)
     out_preds = os.path.join(pred_dir, f"{eval_file.replace('.txt','')}_predictions.txt")
@@ -151,7 +190,6 @@ def main():
                     continue
                 pred_tags.append(id2tag.get(int(pid), "O"))
                 prev_word_idx = wid
-            # đảm bảo đủ tag cho tất cả từ
             if len(pred_tags) < len(sent):
                 pred_tags += ["O"] * (len(sent) - len(pred_tags))
             f.write(" ".join(f"{w}/{t}" for w, t in zip(sent, pred_tags)) + "\n")
