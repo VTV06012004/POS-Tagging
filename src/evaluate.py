@@ -37,7 +37,6 @@ class POSDataset(Dataset):
                 elif word_idx != prev_word_idx:
                     label_ids.append(tag2id[label_seq[word_idx]])
                 else:
-                    # subword -> ignore
                     label_ids.append(-100)
                 prev_word_idx = word_idx
             self.labels.append(label_ids)
@@ -64,11 +63,11 @@ def compute_metrics(p):
 
     for pred, label in zip(preds, labels):
         for p_i, l_i in zip(pred, label):
-            if l_i != -100:  # bỏ subword/pad
+            if l_i != -100:
                 true_labels.append(l_i)
                 true_preds.append(p_i)
 
-    # Micro metrics (trùng accuracy)
+    # Micro metrics
     precision_micro, recall_micro, f1_micro, _ = precision_recall_fscore_support(
         true_labels, true_preds, average="micro", zero_division=0
     )
@@ -83,10 +82,6 @@ def compute_metrics(p):
     precision_weighted, recall_weighted, f1_weighted, _ = precision_recall_fscore_support(
         true_labels, true_preds, average="weighted", zero_division=0
     )
-
-    # Classification report (in console)
-    print("\n📑 Classification report per tag:")
-    print(classification_report(true_labels, true_preds, zero_division=0))
 
     return {
         "accuracy": accuracy,
@@ -150,51 +145,23 @@ def main():
     results = trainer.evaluate()
     print("📊 Evaluation on", eval_file, ":", results)
 
-    # Save metrics
-    results_dir = "/kaggle/working/POS-Tagging/results"
-    os.makedirs(results_dir, exist_ok=True)
-    out_metrics = os.path.join(results_dir, f"eval_{eval_file.replace('.txt','')}.json")
-    with open(out_metrics, "w") as f:
-        json.dump(results, f, indent=2)
-    print(f"✅ Saved evaluation results to {out_metrics}")
-
-    # Save classification report per tag
+    # Predict and show classification report per tag name
     preds_output = trainer.predict(eval_dataset)
     preds = np.argmax(preds_output.predictions, axis=-1)
 
     all_true, all_pred = [], []
-    for pred, label in zip(preds, preds_output.label_ids):
-        for p_i, l_i in zip(pred, label):
-            if l_i != -100:
-                all_true.append(l_i)
-                all_pred.append(p_i)
+    for i, (sent, pred_seq) in enumerate(zip(eval_sentences, preds)):
+        word_ids = eval_dataset.encodings.word_ids(batch_index=i)
+        prev_word_idx = None
+        for wid, pid in zip(word_ids, pred_seq):
+            if wid is None or wid == prev_word_idx:
+                continue
+            all_true.append(eval_tags[i][wid])
+            all_pred.append(id2tag.get(int(pid), "O"))
+            prev_word_idx = wid
 
-    report_txt = classification_report(all_true, all_pred, target_names=[id2tag[i] for i in sorted(id2tag.keys())], zero_division=0)
-    report_path = os.path.join(results_dir, f"eval_{eval_file.replace('.txt','')}_report.txt")
-    with open(report_path, "w", encoding="utf-8") as f:
-        f.write(report_txt)
-    print(f"✅ Saved classification report to {report_path}")
-
-    # Save predictions
-    pred_dir = os.path.join(results_dir, "predictions")
-    os.makedirs(pred_dir, exist_ok=True)
-    out_preds = os.path.join(pred_dir, f"{eval_file.replace('.txt','')}_predictions.txt")
-
-    with open(out_preds, "w", encoding="utf-8") as f:
-        for i, (sent, pred_ids) in enumerate(zip(eval_sentences, preds)):
-            word_ids = eval_dataset.encodings.word_ids(batch_index=i)
-            prev_word_idx = None
-            pred_tags = []
-            for wid, pid in zip(word_ids, pred_ids):
-                if wid is None or wid == prev_word_idx:
-                    continue
-                pred_tags.append(id2tag.get(int(pid), "O"))
-                prev_word_idx = wid
-            if len(pred_tags) < len(sent):
-                pred_tags += ["O"] * (len(sent) - len(pred_tags))
-            f.write(" ".join(f"{w}/{t}" for w, t in zip(sent, pred_tags)) + "\n")
-
-    print(f"✅ Saved predictions to {out_preds}")
+    print("\n📑 Classification report per tag:")
+    print(classification_report(all_true, all_pred, zero_division=0))
 
 if __name__ == "__main__":
     main()
