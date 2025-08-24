@@ -54,6 +54,7 @@
     .pron { background: #FFE599; }
     .verb { background: #B6D7A8; }
     .propn { background: #6FA8DC; }
+    .intj { background: #009737;}
     .other { background: #CCCCCC; }
     #legend {
       margin-top: 20px;
@@ -89,9 +90,10 @@
     <span class="pron">Pronoun</span>
     <span class="verb">Verb</span>
     <span class="propn">Proper Noun</span>
+    <span class="intj">Interjection</span>
   </div>
 
-  <script>
+  <script>  
     const posColors = {
       "ADJ": "adj",
       "ADV": "adv",
@@ -103,7 +105,10 @@
       "ADP": "prep",
       "PRON": "pron",
       "VERB": "verb",
-      "PROPN": "propn"
+      "AUX": "verb",
+      "PART": "verb",
+      "PROPN": "propn",
+      "INTJ": "intj"
     };
 
     async function runPOSTagging() {
@@ -137,7 +142,33 @@
         const span = document.createElement("span");
         span.className = "tag " + (posColors[item.pos] || "other");
         span.textContent = item.word + " ";
-        span.title = `${item.word} → ${item.pos}`;
+        
+        let tag = "";
+        if (item.pos == "ADJ") {
+          tag = "ADJECTIVE";
+        } else if (item.pos == "ADV") {
+          tag = "ADVERB";
+        } else if (item.pos == "CCONJ" || item.pos == "SCONJ") {
+          tag = "CONJUNCTION";
+        } else if (item.pos == "DET") {
+          tag = "DETERMINER";
+        } else if (item.pos == "NOUN") {
+          tag = "NOUN";
+        } else if (item.pos == "NUM") {
+          tag = "NUMBER";
+        } else if (item.pos == "ADP") {
+          tag = "PREPOSITION";
+        } else if (item.pos == "PRON") {
+          tag = "PRONOUN";
+        } else if (item.pos == "VERB" || item.pos == "AUX" || item.pos == "PART") {
+          tag = "VERB";
+        } else if (item.pos == "PROPN") {
+          tag = "PROPER NOUN";
+        } else if (item.pos == "INTJ") {
+          tag = "INTERJECTION";
+        }
+
+        span.title = `${item.word} → ${tag}`;
         container.appendChild(span);
       });
     }
